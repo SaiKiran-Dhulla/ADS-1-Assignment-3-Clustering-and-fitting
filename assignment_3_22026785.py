@@ -12,7 +12,7 @@ import scipy.optimize as opt
 import cluster_tools as ct
 import errors as err
 import importlib
- 
+
 
 def reading_data(filepath):
     '''
@@ -258,3 +258,57 @@ def forecast_energy(data, country, start_year, end_year):
     print(f"Energy Use in Kg Oil by 2030 in {country}",
           np.round(energy2030*1e9, 2), "+/-", np.round(sig*1e9, 2))
 
+
+#Reading Energy Use in Kg oil equivalent per capita Data
+energy = reading_data("energy_use_kg_oil.csv")
+print(energy.describe())
+
+#Finding transpose of Energy Use in Kg oil equivalent per capita Data
+energy_tr = transpose(energy)
+print(energy_tr.head())
+
+#Selecting years for which correlation is done for further analysis
+energy = energy[["1990", '1995', "2000", '2005', "2010", '2015']]
+print(energy.describe())
+
+correlation_and_scattermatrix(energy)
+column1 = "1990"
+column2 = "2010"
+
+# Extracting columns for clustering
+energy_ex = energy[[column1, column2]]
+energy_ex = energy_ex.dropna(axis=0)
+
+# Normalising data and storing minimum and maximum
+energy_norm, df_min, df_max = ct.scaler(energy_ex)
+
+print()
+print("Number of Clusters and Scores")
+ncluster = cluster_number(energy_ex, energy_norm)
+
+energy_norm, cen = clusters_and_centers(energy_norm, ncluster, column1,
+                                        column2)
+
+#Applying backscaling to get actual cluster centers
+scen = ct.backscale(cen, df_min, df_max)
+print('scen\n', scen)
+
+energy_ex, scen = clusters_and_centers(energy_ex, ncluster, column1, column2)
+
+
+print()
+print('Countries in cluster 1')
+print(energy_ex[energy_ex['labels'] == 1].index.values)
+
+
+#Forecast Energy Use per capita for United States
+forecast_energy(energy_tr, 'Canada', 1960, 2031)
+
+#Forecast Energy Use per capita for Pakistan
+forecast_energy(energy_tr, 'United States', 1960, 2031)
+
+#Forecast Energy Use per capita for Pakistan
+forecast_energy(energy_tr, 'Finland', 1960, 2031)
+
+#Forecast Energy Use per capita for Pakistan
+forecast_energy(energy_tr, 'Japan', 1960, 2031)
