@@ -301,14 +301,14 @@ print('Countries in cluster 1')
 print(energy_ex[energy_ex['labels'] == 1].index.values)
 
 
-#Forecast Energy Use per capita for United States
+#Forecast Energy Use per capita for Canada
 forecast_energy(energy_tr, 'Canada', 1960, 2031)
 
-#Forecast Energy Use per capita for Pakistan
+#Forecast Energy Use per capita for United States
 forecast_energy(energy_tr, 'United States', 1960, 2031)
 
-#Forecast Energy Use per capita for Pakistan
+#Forecast Energy Use per capita for Finland
 forecast_energy(energy_tr, 'Finland', 1960, 2031)
 
-#Forecast Energy Use per capita for Pakistan
+#Forecast Energy Use per capita for Japan
 forecast_energy(energy_tr, 'Japan', 1960, 2031)
