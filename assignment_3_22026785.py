@@ -132,3 +132,129 @@ def cluster_number(df, df_normalised):
     print('best n clusters', best_ncluster[0])
 
     return best_ncluster[0]
+
+
+def clusters_and_centers(df, ncluster, y1, y2):
+    '''
+    clusters_and_centers will plot clusters and its centers for given data
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Data for which clusters and centers will be plotted.
+    ncluster : INT
+        Number of clusters.
+    y1 : INT
+        Column 1
+    y2 : INT
+        Column 2
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        Data with cluster labels column added.
+    centres : array
+        Cluster Centers.
+
+    '''
+    # set up the clusterer with the number of expected clusters
+    kmeans = cluster.KMeans(n_clusters=ncluster)
+
+    # Fit the data, results are stored in the kmeans object
+    kmeans.fit(df)
+
+    lab = kmeans.labels_
+    df['labels'] = lab
+    # extract the estimated cluster centres
+    centres = kmeans.cluster_centers_
+
+    centres = np.array(centres)
+    xcen = centres[:, 0]
+    ycen = centres[:, 1]
+
+    # cluster by cluster
+    plt.figure(figsize=(8.0, 8.0))
+
+    cm = plt.cm.get_cmap('tab10')
+    sc = plt.scatter(df[y1], df[y2], 10, lab, marker="o", cmap=cm)
+    plt.scatter(xcen, ycen, 45, "k", marker="d")
+    plt.xlabel(f"Energy Use per capita({y1})")
+    plt.ylabel(f"Energy Use per capita({y2})")
+    plt.legend(*sc.legend_elements(), title='clusters')
+    plt.title('Clusters of Energy Use per capita in 1990 and 2010')
+    plt.show()
+
+    print()
+    print(centres)
+
+    return df, centres
+
+
+def logistic(t, n0, g, t0):
+    """Calculates the logistic function with scale factor n0 
+    and growth rate g"""
+
+    f = n0 / (1 + np.exp(-g*(t - t0)))
+
+    return f
+
+
+def forecast_energy(data, country, start_year, end_year):
+    '''
+    forecast_energy will analyse data and optimize to forecast Energy Use in 
+    Kg Oil equivalent per capita of selected country
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        Data for which forecasting analysis is performed.
+    country : STR
+        Country for which forecasting is performed.
+    start_year : INT
+        Starting year for forecasting.
+    end_year : INT
+        Ending year for forecasting.
+
+    Returns
+    -------
+    None.
+
+    '''
+    data = data.loc[:, country]
+    data = data.dropna(axis=0)
+
+    energy = pd.DataFrame()
+
+    energy['Year'] = pd.DataFrame(data.index)
+    energy['Energy'] = pd.DataFrame(data.values)
+    energy["Year"] = pd.to_numeric(energy["Year"])
+    importlib.reload(opt)
+
+    param, covar = opt.curve_fit(logistic, energy["Year"], energy["Energy"],
+                                 p0=(1.2e12, 0.03, 1990.0))
+
+    sigma = np.sqrt(np.diag(covar))
+
+    year = np.arange(start_year, end_year)
+    forecast = logistic(year, *param)
+    low, up = err.err_ranges(year, logistic, param, sigma)
+    plt.figure()
+    plt.plot(energy["Year"], energy["Energy"], label="Energy Use")
+    plt.plot(year, forecast, label="Forecast", color='k')
+    plt.fill_between(year, low, up, color="yellow", alpha=0.7,
+                     label='Confidence Margin')
+    plt.xlabel("Year")
+    plt.ylabel("Energy Use in Kg Oil equivalent per capita")
+    plt.legend()
+    plt.title(f'Energy Use in Kg Oil equivalent forecast for {country}')
+    plt.savefig(f'{country}.png', bbox_inches='tight', dpi=300)
+    plt.show()
+
+    energy2030 = logistic(2030, *param)/1e9
+
+    low, up = err.err_ranges(2030, logistic, param, sigma)
+    sig = np.abs(up-low)/(2.0 * 1e9)
+    print()
+    print(f"Energy Use in Kg Oil by 2030 in {country}",
+          np.round(energy2030*1e9, 2), "+/-", np.round(sig*1e9, 2))
+
